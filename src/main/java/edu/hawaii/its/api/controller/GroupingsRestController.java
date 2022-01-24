@@ -28,6 +28,7 @@ import edu.hawaii.its.api.service.HttpRequestService;
 import edu.hawaii.its.groupings.access.User;
 import edu.hawaii.its.groupings.access.UserContextService;
 import edu.hawaii.its.groupings.configuration.Realm;
+import edu.hawaii.its.groupings.exceptions.ApiServerHandshakeException;
 
 @RestController
 @RequestMapping("/api/groupings")
@@ -64,8 +65,8 @@ public class GroupingsRestController {
     @Value("${groupings.api.opt_out}")
     private String OPT_OUT;
 
-    @Value("${app.grouper.handshake.enabled:true}")
-    private Boolean GROUPER_HANDSHAKE_ENABLED = true;
+    @Value("${app.api.handshake.enabled:true}")
+    private Boolean API_HANDSHAKE_ENABLED = true;
 
     /*
      * Checks to make sure that the API is running and that there are no issues with the overrides file.
@@ -96,15 +97,11 @@ public class GroupingsRestController {
     @PostConstruct
     public void init() {
         Assert.hasLength(uuid, "Property 'app.groupings.controller.uuid' is required.");
-        logger.info("GROUPER_HANDSHAKE_ENABLED: " + GROUPER_HANDSHAKE_ENABLED);
-        Assert.notNull(GROUPER_HANDSHAKE_ENABLED, "Property 'app.grouper.handshake.enabled' is required.");
+        logger.info("API_HANDSHAKE_ENABLED: " + API_HANDSHAKE_ENABLED);
+        Assert.notNull(API_HANDSHAKE_ENABLED, "Property 'app.api.handshake.enabled' is required.");
 
-        if (GROUPER_HANDSHAKE_ENABLED) {
-            if (!realm.isAnyProfileActive("default", "localTest")) {
-                Assert.isTrue(
-                        doGrouperHandshake(),
-                        "Please start the UH Groupings API first.");
-            }
+        if (shouldDoGrouperHandshake()) {
+            doGrouperHandshake();
         }
 
         logger.info(getClass().getSimpleName() + " started.");
@@ -539,10 +536,49 @@ public class GroupingsRestController {
         return httpRequestService.makeApiRequest(username, uri, HttpMethod.PUT);
     }
 
-    private boolean doGrouperHandshake() {
-        return httpRequestService.makeApiRequest(CREDENTIAL_CHECK_USER, API_2_1_BASE + "/", HttpMethod.GET)
-                .getStatusCode()
-                .is2xxSuccessful();
+    protected Boolean shouldDoGrouperHandshake() {
+        if (!API_HANDSHAKE_ENABLED) {
+            logger.info("API handshake disabled.");
+            return false;
+        }
+
+        return !realm.isAnyProfileActive("default", "localTest");
+    }
+
+    protected void doGrouperHandshake() {
+        if (shouldDoGrouperHandshake()) {
+            boolean success = false;
+            try {
+                final String username = CREDENTIAL_CHECK_USER;
+                final String url = API_2_1_BASE + "/";
+                success = httpRequestService.makeApiRequest(username, url, HttpMethod.GET)
+                        .getStatusCode()
+                        .is2xxSuccessful();
+            } catch (Exception e) {
+                logger.debug("API Handshack error: ", e);
+            }
+
+            if (!success) {
+                String text = "Please start the UH Groupings API first.";
+                throw new ApiServerHandshakeException(text);
+            }
+        }
+    }
+
+    public HttpRequestService getHttpRequestService() {
+        return httpRequestService;
+    }
+
+    public void setHttpRequestService(HttpRequestService httpRequestService) {
+        this.httpRequestService = httpRequestService;
+    }
+
+    public Realm getRealm() {
+        return realm;
+    }
+
+    public void setRealm(Realm realm) {
+        this.realm = realm;
     }
 
 }
