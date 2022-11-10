@@ -12,9 +12,9 @@
                 Export Groups
             </button>
             <div class="dropdown-menu">
-                <button class="dropdown-item" ng-click="exportGroupToCsv(groupingMembers, selectedGrouping.name, 'members')" ng-disabled="!paginatingComplete">Export members to CSV</button>
-                <button class="dropdown-item" ng-click="exportGroupToCsv([], selectedGrouping.name, 'include')" ng-disabled="!paginatingComplete">Export include to CSV</button>
-                <button class="dropdown-item" ng-click="exportGroupToCsv([], selectedGrouping.name, 'exclude')" ng-disabled="!paginatingComplete">Export exclude to CSV</button>
+                <button class="dropdown-item" ng-click="exportGroupToCsv(groupingMembers, selectedGrouping.name, 'members')" ng-disabled="!paginatingComplete">Export members list to CSV</button>
+                <button class="dropdown-item" ng-click="exportGroupToCsv([], selectedGrouping.name, 'include')" ng-disabled="!paginatingComplete">Export Include members list to CSV</button>
+                <button class="dropdown-item" ng-click="exportGroupToCsv([], selectedGrouping.name, 'exclude')" ng-disabled="!paginatingComplete">Export Exclude members list to CSV</button>
             </div>
         </div>
     </div>
